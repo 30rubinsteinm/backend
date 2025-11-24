@@ -1,8 +1,8 @@
 {
   "name": "goobapp-backend",
   "version": "0.0.1",
-  "description": "The backend for goobapp, obviously",
-  "main": "dist/server.ts",
+  "description": "The backend for GoobApp!",
+  "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
@@ -12,11 +12,11 @@
   "license": "MIT",
   "dependencies": {
     "express": "^5.1.0",
-    "nodemon": "^3.1.11",
     "rate-limiter-flexible": "^8.3.0",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

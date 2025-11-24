@@ -13,10 +13,8 @@ const http = require('http'); // Get the HTTP package
 const server = http.createServer(app); // Create an HTTP server using the new express app as its handler
 const { Server } = require("socket.io") // Get the Socket.IO package
 
-const io = new Server(server, process.env.NODE_ENV !== 'production' ? {cors: {
-    origin: "http://localhost:5173"
-  }
-} : {cors: {}}); // Create a new Socket.IO instance using the created HTTP server
+console.log(process.env.NODE_ENV)
+const io = new Server(server); // Create a new Socket.IO instance using the created HTTP server
 
 function getRandomInt(max: number) { // temp
   return Math.floor(Math.random() * max);
@@ -49,5 +47,5 @@ io.on('connection', (socket: Socket) => { // Receive this when a user has ANY co
   });
 
 server.listen(PORT, () => { // Start the server at the chosen port
-  console.log('listening on *:3000');
+  console.log(`listening on *:${PORT}`);
 });
