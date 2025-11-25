@@ -42,7 +42,7 @@ const getRandomInt = (max: number): string => {
 };
 
 const rateLimiter = new RateLimiterMemory({
-  points: 8, // 8 messages
+  points: 7, // 7 messages
   duration: 3, // per 5 seconds
 });
 
