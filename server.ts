@@ -42,8 +42,8 @@ const getRandomInt = (max: number): string => {
 };
 
 const rateLimiter = new RateLimiterMemory({
-  points: 10, // 10 points
-  duration: 3, // per 3 seconds
+  points: 8, // 8 messages
+  duration: 3, // per 5 seconds
 });
 
 io.on("connection", (socket: Socket) => {
