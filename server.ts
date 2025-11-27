@@ -23,7 +23,7 @@ const io = new Server(server, {
   },
 }); // Create a new Socket.IO instance using the created HTTP server
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, Session } from "@supabase/supabase-js";
 
 const supabaseUrl = "https://wfdcqaqihwsilzegcknq.supabase.co";
 const supabaseKey = process.env.SUPABASE_KEY;
@@ -51,11 +51,13 @@ io.on("connection", (socket: Socket) => {
   // Receive this when a user has ANY connection event to the Socket.IO server
   console.log("a user connected");
 
-  socket.on("message sent", async (msg: ChatMessage) => {
+  socket.on("message sent", async (msg: ChatMessage, session: Session) => {
+    if (!session) return;
+
     // Received when the "message sent" gets called from a client
     try {
-      await rateLimiter.consume(socket.id); // consume 1 point per event per each user ID
-      await immediateRateLimiter.consume(socket.id); // do this for immediate stuff (no spamming every 0.1 seconds)
+      await rateLimiter.consume(session.user.id); // consume 1 point per event per each user ID
+      await immediateRateLimiter.consume(session.user.id); // do this for immediate stuff (no spamming every 0.1 seconds)
       if (msg.messageContent.length <= 1001) {
         io.emit("client receive message", msg); // Emit it to everyone else!
       }
