@@ -11,4 +11,4 @@ services:
       - key: SUPABASE_KEY
         value: ""
       - key: PORT
-        value: 10000
+        value: 3000
