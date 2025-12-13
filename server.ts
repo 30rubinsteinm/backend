@@ -103,7 +103,7 @@ io.on("connection", (socket: Socket) => {
   socket.on("disconnect", (reason) => {
     // Called when a user is disconnected for any reason, passed along with the reason arg.
 
-    const activeUser = activeUsers[reason];
+    const activeUser = activeUsers[socket.id];
     if (activeUser) {
       io.emit("remove active user", activeUser);
       delete activeUsers[socket.id];
