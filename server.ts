@@ -119,6 +119,7 @@ io.on("connection", (socket: Socket) => {
     // Called when a user is disconnected for any reason, passed along with the reason arg.
 
     const activeUser = activeUsers[socket.id];
+
     if (activeUser) {
       io.emit("remove active user", activeUser);
       delete activeUsers[socket.id];
@@ -129,6 +130,12 @@ io.on("connection", (socket: Socket) => {
     if (!user) {
       console.warn(`User null! User: ${user}`);
       return;
+    }
+
+    for (const [key, value] of Object.entries(activeUsers)) {
+      if (value.userUUID === user.userUUID && key != socket.id) {
+        delete activeUsers[key];
+      }
     }
 
     activeUsers[socket.id] = user;
