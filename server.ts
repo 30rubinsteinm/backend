@@ -66,11 +66,15 @@ io.on("connection", (socket: Socket) => {
       return;
     }
 
-    const formattedData = data.map((row) => {
-      newUserDisplayName: row.username_snapshot;
-      newUserUUID: row.user_uuid;
-      newUserProfilePicture: row.profile_picture_snapshot;
-      newMessageContent: row.message_content;
+    const formattedData: ChatMessage[] = data.map((row) => {
+      return {
+        userDisplayName: row.username_snapshot,
+        userUUID: row.user_uuid,
+        userProfilePicture: row.profile_picture_snapshot,
+        messageContent: row.message_content,
+        messageId: row.message_id,
+        messageTime: row.created_at,
+      };
     });
 
     socket.emit("receive recent messages", formattedData);
