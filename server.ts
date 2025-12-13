@@ -66,7 +66,14 @@ io.on("connection", (socket: Socket) => {
       return;
     }
 
-    socket.emit("receive recent messages", data);
+    const formattedData = data.map((row) => {
+      newUserDisplayName: row.username_snapshot;
+      newUserUUID: row.user_uuid;
+      newUserProfilePicture: row.profile_picture_snapshot;
+      newMessageContent: row.message_content;
+    });
+
+    socket.emit("receive recent messages", formattedData);
   });
 
   socket.on("request active users", async () => {
