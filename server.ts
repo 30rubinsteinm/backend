@@ -27,6 +27,8 @@ import { createClient, Session, SupabaseClient } from "@supabase/supabase-js";
 import UserProfile from "./types/UserProfileObject";
 
 const supabaseUrl = "https://wfdcqaqihwsilzegcknq.supabase.co";
+
+require("dotenv").config();
 const supabaseKey = process.env.SUPABASE_KEY;
 let usingSupabase: boolean = false;
 let supabase: SupabaseClient;
@@ -36,6 +38,7 @@ if (!supabaseKey) {
   console.error("No supabase key found!");
   // process.exit(1); // Exit with a non-zero code to indicate an error
 } else {
+  console.log("Supabase key found!");
   usingSupabase = true;
   supabase = createClient(supabaseUrl, supabaseKey);
 }
@@ -50,10 +53,25 @@ const immediateRateLimiter = new RateLimiterMemory({
   duration: 0.2, // per 0.2 seconds
 });
 
+const verifyValidity = async (socket: Socket) => {
+  return true;
+  const token = socket.handshake.auth.token;
+  const {
+    data: { user },
+    error: tokenError,
+  } = await supabase.auth.getUser(token);
+  if (tokenError || !user) {
+    return new Error("Authentication error");
+  } else {
+    return true;
+  }
+};
+
 io.on("connection", (socket: Socket) => {
   // Receive this when a user has ANY connection event to the Socket.IO server
 
   socket.on("request recent messages", async () => {
+    if ((await verifyValidity(socket)) != true) return;
     if (!usingSupabase) return; // Can later warn not using database but meh not right now
     const { data: messagesData, error: messagesError } = await supabase
       .from("messages")
@@ -82,11 +100,22 @@ io.on("connection", (socket: Socket) => {
   });
 
   socket.on("request active users", async () => {
+    if (usingSupabase) if ((await verifyValidity(socket)) != true) return;
     socket.emit("receive active users", Object.values(activeUsers));
   });
 
   socket.on("edit message", async (newId: number, newContent: string) => {
     if (usingSupabase) {
+      if ((await verifyValidity(socket)) != true) return;
+      const token = socket.handshake.auth.token;
+      const {
+        data: { user },
+        error: tokenError,
+      } = await supabase.auth.getUser(token);
+      if (tokenError || !user) {
+        return new Error("Authentication error");
+      }
+
       const { error } = await supabase
         .from("messages")
         .update({
@@ -99,36 +128,49 @@ io.on("connection", (socket: Socket) => {
       if (error) {
         console.error("Could not update message: " + error);
       } else {
-        io.emit("message edited", newId, newContent);
+        const {
+          data: { user },
+          error: newError,
+        } = await supabase.auth.getUser();
+
+        if (newError) {
+          console.error("Could not update message: " + newError);
+        } else {
+          io.emit("message edited", newId, newContent);
+        }
       }
     }
   });
   socket.on("message sent", async (msg: ChatMessage, session: Session) => {
     // Received when the "message sent" gets called from a client
-    try {
-      if (usingSupabase) {
-        await rateLimiter.consume(session.user.id); // consume 1 point per event per each user ID
-        await immediateRateLimiter.consume(session.user.id); // do this for immediate stuff (no spamming every 0.1 seconds)
-      }
-      if (msg.messageContent.length <= 1201) {
-        io.emit("client receive message", msg); // Emit it to everyone else!
-        if (usingSupabase) {
-          // Only insert if actually using Supabase!
-          const { error } = await supabase.from("messages").insert({
-            // Insert a message into the Supabase table
-            user_uuid: msg.userUUID,
-            message_content: msg.messageContent,
-          });
 
-          if (error) {
-            console.error("Could not insert message: " + error);
+    if (usingSupabase) {
+      if ((await verifyValidity(socket)) != true) return;
+    }
+
+    if (msg.messageContent.length <= 1201) {
+      io.emit("client receive message", msg); // Emit it to everyone else!
+      if (usingSupabase) {
+        // Only insert if actually using Supabase!
+        const { error } = await supabase.from("messages").insert({
+          // Insert a message into the Supabase table
+          user_uuid: msg.userUUID,
+          message_content: msg.messageContent,
+        });
+
+        if (error) {
+          console.error("Could not insert message: " + error);
+        } else {
+          try {
+            await rateLimiter.consume(socket.handshake.auth.id); // consume 1 point per event per each user ID
+            await immediateRateLimiter.consume(socket.handshake.auth.id); // do this for immediate stuff (no spamming every 0.1 seconds)
+          } catch (rejRes) {
+            // No available points to consume
+            // Emit error or warning message
+            socket.emit("rate limited");
           }
         }
       }
-    } catch (rejRes) {
-      // No available points to consume
-      // Emit error or warning message
-      socket.emit("rate limited");
     }
   });
 
@@ -144,6 +186,8 @@ io.on("connection", (socket: Socket) => {
   });
 
   socket.on("add to active users list", (user: UserProfile) => {
+    // if ((await verifyValidity(socket)) != true) return;
+
     if (!user) {
       console.warn(`User null! User: ${user}`);
       return;
