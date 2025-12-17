@@ -53,6 +53,10 @@ const immediateRateLimiter = new RateLimiterMemory({
 });
 
 const verifyValidity = async (socket: Socket) => {
+  if (!usingSupabase) {
+    return true;
+  }
+
   const token = socket.handshake.auth.token;
   const {
     data: { user },
@@ -94,7 +98,7 @@ io.on("connection", (socket: Socket) => {
   });
 
   socket.on("request active users", async () => {
-    if (usingSupabase) if ((await verifyValidity(socket)) != true) return;
+    if ((await verifyValidity(socket)) != true) return;
     socket.emit("receive active users", Object.values(activeUsers));
   });
 
@@ -133,9 +137,7 @@ io.on("connection", (socket: Socket) => {
   socket.on("message sent", async (msg: ChatMessage, session: Session) => {
     // Received when the "message sent" gets called from a client
 
-    if (usingSupabase) {
-      if ((await verifyValidity(socket)) != true) return;
-    }
+    if ((await verifyValidity(socket)) != true) return;
 
     if (msg.messageContent.length <= 1201) {
       if (usingSupabase) {
@@ -150,8 +152,8 @@ io.on("connection", (socket: Socket) => {
           console.error("Could not insert message: " + error);
         } else {
           try {
-            await rateLimiter.consume(socket.handshake.auth.id); // consume 1 point per event per each user ID
-            await immediateRateLimiter.consume(socket.handshake.auth.id); // do this for immediate stuff (no spamming every 0.1 seconds)
+            await rateLimiter.consume(socket.id); // consume 1 point per event per each user ID
+            await immediateRateLimiter.consume(socket.id); // do this for immediate stuff (no spamming every 0.1 seconds)
             io.emit("client receive message", msg); // Emit it to everyone else!
           } catch (rejRes) {
             // No available points to consume
@@ -174,8 +176,8 @@ io.on("connection", (socket: Socket) => {
     }
   });
 
-  socket.on("add to active users list", (user: UserProfile) => {
-    // if ((await verifyValidity(socket)) != true) return;
+  socket.on("add to active users list", async (user: UserProfile) => {
+    if ((await verifyValidity(socket)) != true) return;
 
     if (!user) {
       console.warn(`User null! User: ${user}`);
