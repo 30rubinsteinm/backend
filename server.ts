@@ -28,7 +28,6 @@ import UserProfile from "./types/UserProfileObject";
 
 const supabaseUrl = "https://wfdcqaqihwsilzegcknq.supabase.co";
 
-require("dotenv").config();
 const supabaseKey = process.env.SUPABASE_KEY;
 let usingSupabase: boolean = false;
 let supabase: SupabaseClient;
