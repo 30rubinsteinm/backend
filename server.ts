@@ -92,6 +92,7 @@ io.on("connection", (socket: Socket) => {
         .update({
           // Edit the specific message thing
           message_content: newContent,
+          is_edited: true,
         })
         .eq("message_id", newId);
 
